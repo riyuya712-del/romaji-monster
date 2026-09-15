@@ -3913,19 +3913,19 @@ function trace26JudgeChar(expected,strokes){
  const top=rank[0];
  let ok=top?.[0]===expected;
 
- // v152: 指定された探索だけをピンポイントで救済する。
- // g = たんさく全般（かんたん・ふつう・むずかしい）で少し緩める。
- // t = たんさく「ふつう」だけ少し緩める。
+ // v153: 指定された探索だけをピンポイントで救済する。
+ // g = たんさく全般（かんたん・ふつう・むずかしい）はv152のまま。
+ // t = たんさく全般（かんたん・ふつう・むずかしい）でv152より甘くする。
  // それ以外の文字・判定方式・探索外の判定は変更しない。
  const explorationDifficulty=session?.d;
  const loosenG=expected==='g' && ['easy','normal','hard'].includes(explorationDifficulty);
- const loosenT=expected==='t' && explorationDifficulty==='normal';
+ const loosenT=expected==='t' && ['easy','normal','hard'].includes(explorationDifficulty);
  if(!ok && (loosenG||loosenT)){
    const expectedRank=rank.findIndex(([l])=>l===expected);
    if(expectedRank===1){
      const expectedDist=rank[expectedRank][1];
      const bestDist=top?.[1]??Infinity;
-     const rescueMargin=loosenG?0.16:0.14;
+     const rescueMargin=loosenG?0.16:0.22;
      if(expectedDist<=bestDist+rescueMargin)ok=true;
    }
  }

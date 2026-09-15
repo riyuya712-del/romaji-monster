@@ -58,6 +58,11 @@ label{font-weight:800}
  .trace-cell{font-size:126px}
 }
 
+
+.item-exchange-title{margin-top:14px;font-weight:900;text-align:center}
+.item-exchange-list{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.item-exchange-list button{min-height:48px;font-weight:900}
+@media(max-width:520px){.item-exchange-list{grid-template-columns:1fr}}
 </style>
 <meta name="romaji-monster-version" content="v124-level99-final">
 
@@ -3323,7 +3328,12 @@ function renderCollection(){
            <span class="found-item-count">× ${itemCount(item)}</span>
          </button>`).join("")}
      </div>
-     
+     <div class="item-exchange-title">🔄 アイテムを エサにかえる</div>
+     <div class="item-exchange-list">
+       <button class="small" onclick="exchangeItemForFood('🌱 しんかのタネ','easy',25)">🌱 → 🍎 25こ</button>
+       <button class="small" onclick="exchangeItemForFood('💎 しんかクリスタル','normal',50)">💎 → 🍖 50こ</button>
+       <button class="small" onclick="exchangeItemForFood('👑 でんせつのかんむり','hard',100)">👑 → 🍰 100こ</button>
+     </div>
    </div>
  </div>`;
 }
@@ -3384,6 +3394,22 @@ function giveAllFood(){
  else if(evolved)levelFlash("🎁 しんかアイテムを もらった！");
  else if(leveled)levelFlash("LEVEL UP！");
  else monsterReaction();
+}
+
+function exchangeItemForFood(item,type,amount){
+ if(itemCount(item)<=0){
+   alert("このアイテムは まだもっていないよ！");
+   return;
+ }
+ const foodName={easy:"木の実",normal:"肉",hard:"ケーキ"}[type];
+ if(!confirm(item+"を\n"+foodName+" "+amount+"こに かえますか？"))return;
+ const idx=(data.items||[]).indexOf(item);
+ if(idx<0)return;
+ data.items.splice(idx,1);
+ data.food[type]=(data.food[type]||0)+amount;
+ save();
+ renderCollection();
+ setTimeout(()=>levelFlash("🔄 "+foodName+" "+amount+"こ GET！"),60);
 }
 
 function giveFoundItem(item){
@@ -3886,6 +3912,23 @@ function trace26JudgeChar(expected,strokes){
  if(expected==='a'&&rank[0]&&rank[0][0]==='a'){let inter=0,on=0,ri=0,ro=0,li=0,lo=0,t=trace26Alpha;for(let y=0;y<32;y++)for(let x=0;x<32;x++){const k=y*32+x,T=t.g[k]>0,F=f.g[k]>0;if(T){on++;if(F)inter++}if(T&&x>=18){ro++;if(F)ri++}if(T&&y>=17){lo++;if(F)li++}}const sig=(inter/Math.max(1,on))*.45+(ri/Math.max(1,ro))*.35+(li/Math.max(1,lo))*.20,margin=(rank[1]?.[1]??999)-rank[0][1];if(sig<.54||margin<.035){const a=rank[0],rest=rank.slice(1).sort((x,y)=>x[1]-y[1]);rank=rest.concat([a])}}
  const top=rank[0];
  let ok=top?.[0]===expected;
+
+ // v152: 指定された探索だけをピンポイントで救済する。
+ // g = たんさく全般（かんたん・ふつう・むずかしい）で少し緩める。
+ // t = たんさく「ふつう」だけ少し緩める。
+ // それ以外の文字・判定方式・探索外の判定は変更しない。
+ const explorationDifficulty=session?.d;
+ const loosenG=expected==='g' && ['easy','normal','hard'].includes(explorationDifficulty);
+ const loosenT=expected==='t' && explorationDifficulty==='normal';
+ if(!ok && (loosenG||loosenT)){
+   const expectedRank=rank.findIndex(([l])=>l===expected);
+   if(expectedRank===1){
+     const expectedDist=rank[expectedRank][1];
+     const bestDist=top?.[1]??Infinity;
+     const rescueMargin=loosenG?0.16:0.14;
+     if(expectedDist<=bestDist+rescueMargin)ok=true;
+   }
+ }
 
  // v150: 判定差をつけるのは「たんさく・むずかしい」だけ。
  // むずかしい通常 = 従来どおり（1位が正解文字のときだけ）。
